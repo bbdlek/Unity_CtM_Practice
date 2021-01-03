@@ -19,6 +19,7 @@ public class ClickToMove : MonoBehaviour
     void Awake()
     {
         anim = GetComponent<Animator>();
+        //anim = GetComponentInChildren<Animator>();
         navMeshAgent = GetComponent<NavMeshAgent>();
     }
 
@@ -30,6 +31,7 @@ public class ClickToMove : MonoBehaviour
 
         if (Input.GetButtonDown("Fire2")) //마우스 우클릭
         {
+            navMeshAgent.ResetPath();
             if(Physics.Raycast(ray, out hit, 1000)) //클릭한 거리 이내 물체 충돌 감지 , 물리 사용
             {
                 if(hit.collider.tag == "Enemy")
@@ -51,17 +53,21 @@ public class ClickToMove : MonoBehaviour
         {
             MoveAndAttck();
         }
-
-        if(navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance) //도착시 정지
-        {
-            walking = false;
-        }
         else
         {
-            walking = true;
+            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance) //도착시 정지
+            {
+                walking = false;
+            }
+            else if(!navMeshAgent.pathPending && navMeshAgent.remainingDistance >= navMeshAgent.stoppingDistance)
+            {
+                walking = true;
+            }
         }
 
-        //anim.SetBool("isWalking", walking);
+        
+
+        anim.SetBool("isWalking", walking);
     }
 
     void MoveAndAttck()
@@ -73,19 +79,21 @@ public class ClickToMove : MonoBehaviour
 
         navMeshAgent.destination = targetedEnemy.position; //클릭방향으로
 
-        if(navMeshAgent.remainingDistance > attackDistance) //물체와의  거리 >= 공격사정거리
+        if(!navMeshAgent.pathPending && navMeshAgent.remainingDistance > attackDistance) //물체와의  거리 >= 공격사정거리
         {
             navMeshAgent.isStopped = false;
             walking = true;
         }
-        else
+        else if(!navMeshAgent.pathPending && navMeshAgent.remainingDistance <= attackDistance)
         {
+            anim.SetBool("isAttacking", false);
             transform.LookAt(targetedEnemy);
             Vector3 dirToAttack = targetedEnemy.transform.position - transform.position;
 
             if(Time.time > nextAttack)
             {
                 nextAttack = Time.time + attackRate;
+                anim.SetBool("isAttacking", true);
             }
             navMeshAgent.isStopped = true;
             walking = false;
